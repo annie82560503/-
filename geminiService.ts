@@ -1,12 +1,38 @@
 
-import { GoogleGenAI } from "@google/genai";
-import { SelectedCardInfo, TarotCard } from "./types";
+import { SelectedCardInfo } from "./types";
 
-// The SDK handles authentication via the provided API KEY.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const BASE_URL = "https://gemini-for-student.annchen1982.workers.dev";
+// 修正 Token：根據規格應為 st_112050047
+const AUTH_TOKEN = "st_112050047";
 
 /**
- * Generates a mystical interpretation of the chosen cards.
+ * 呼叫學生代理 API 的通用函數 (純 fetch 實作)
+ */
+async function callProxy(endpoint: string, prompt: string) {
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': AUTH_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }]
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`API Error (${response.status}):`, errorData);
+    throw new Error(`API Error: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * 透過 /chat 取得塔羅牌義解讀
  */
 export async function getTarotInterpretation(
   question: string,
@@ -31,52 +57,45 @@ export async function getTarotInterpretation(
     2. 【結構】：
        - 能量感應：簡述當下的靈性氛圍。
        - 三牌解析：分別解讀三張牌對應「過去/基礎」、「現況/阻礙」、「未來/建議」。
-       - 總結：給予一個充滿光力量的指引。
+       - 總結：給予一個充滿力量的指引。
     
     請用繁體中文回答，約 400 字。
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-    });
-    return response.text || "連結阿卡西紀錄時發生波動，請稍後再試。";
+    const data = await callProxy('/chat', prompt);
+    // 根據代理 API 文件定義的解析路徑：data.candidates[0].content.parts[0].text
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "連結阿卡西紀錄時發生波動，請稍後再試。";
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "連線異常。請確認您的授權權杖（st_開頭學號）是否正確設定。";
+    console.error("Chat API Error:", error);
+    return "連線異常。請確認您的授權權杖是否正確設定 (st_112050047)。";
   }
 }
 
 /**
- * Generates a unique visual representation for a Thoth Tarot card 
- * using the gemini-2.5-flash-image (Nano Banana) model.
+ * 透過 /text-to-image 生成獨一無二的塔羅牌視覺
  */
 export async function generateCardVisual(cardName: string, question: string): Promise<string> {
-  const prompt = `A mystical Thoth Tarot card artwork for "${cardName}". 
-    The theme is related to the question: "${question}". 
-    Style: Sacred geometry, Crowleyan occult art, deep purples, golds, and cosmic energy, high detail, symmetrical, esoteric symbols.`;
+  const prompt = `A high-quality mystical Thoth Tarot card artwork for "${cardName}". 
+    The theme relates to: "${question}". 
+    Style: Crowleyan esoteric art, sacred geometry, gold and deep purple palette, cinematic lighting, highly detailed occult symbols.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: prompt }],
-      },
-      config: {
-        imageConfig: { aspectRatio: "3:4" }
-      }
-    });
-
-    for (const part of response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
+    const data = await callProxy('/text-to-image', prompt);
+    
+    // 增加容錯：同時檢查 inline_data 與 inlineData
+    const part = data.candidates?.[0]?.content?.parts?.[0];
+    const base64Image = part?.inline_data?.data || part?.inlineData?.data;
+    
+    if (!base64Image) {
+      console.warn("No image data found in response, using fallback.", data);
+      throw new Error("No image data found");
     }
-    throw new Error("No image data returned");
+    
+    return `data:image/png;base64,${base64Image}`;
   } catch (error) {
     console.error("Image Generation Error:", error);
-    // Fallback to a placeholder if image generation fails
-    return `https://picsum.photos/seed/${cardName}/300/500`;
+    // 失敗時回傳 placeholder，確保網頁不會白屏
+    return `https://picsum.photos/seed/${encodeURIComponent(cardName + Math.random())}/300/500`;
   }
 }
