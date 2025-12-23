@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thoth Tarot - DRAW YOUR FATE</title>
+    <title>托特之鏡：當代塔羅冥想展 | Mirror of Thoth</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,33 +14,30 @@
         margin: 0;
         padding: 0;
         background-color: #050505;
-        font-family: 'Noto+Sans+TC', sans-serif;
+        font-family: 'Noto Sans TC', sans-serif;
         color: #e2e8f0;
       }
       .font-mystical {
         font-family: 'Cinzel', serif;
       }
-      /* Custom scrollbar for a cleaner look */
       ::-webkit-scrollbar {
-        width: 6px;
+        width: 4px;
       }
       ::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.3);
+        background: #000;
       }
       ::-webkit-scrollbar-thumb {
-        background: #4a5568;
-        border-radius: 3px;
+        background: #4c1d95;
       }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #718096;
+      @keyframes glow {
+        0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
       }
-      @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-        100% { transform: translateY(0px); }
+      .card-glow {
+        animation: glow 3s infinite;
       }
-      .animate-float {
-        animation: float 3s ease-in-out infinite;
+      .bg-mystic-gradient {
+        background: radial-gradient(circle at center, #1a1033 0%, #050505 100%);
       }
     </style>
   <script type="importmap">
@@ -57,6 +54,5 @@
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
